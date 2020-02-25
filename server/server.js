@@ -39,6 +39,15 @@ app.post('/signup', (req, res) => {
     })
 })
 
+app.post('/show', (req, res) => {
+    let body = _.pick(req.body, ['email', 'password', 'firstname', 'lastname', 'phone-number'])
+
+    res.send({
+        ...body,
+        thanks: 'that'
+    })
+})
+
 app.get('/get', (req, res) => {
     res.send('i am being sent')
 })
