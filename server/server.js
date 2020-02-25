@@ -39,6 +39,10 @@ app.post('/signup', (req, res) => {
     })
 })
 
+app.get('/get', (req, res) => {
+    res.send('i am being sent')
+})
+
 /*****Login Route */
 app.post('/login', (req, res) => {
     const body = _.pick(req.body, ['email', 'password'])
