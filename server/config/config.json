@@ -1,0 +1,12 @@
+{
+    "test": {
+        "PORT": 8080,
+        "MONGODB_URI": "mongodb://localhost:27017/MusicAppTest", 
+        "JWT_SECRET": "ijpjjdkslagcgckjcndjfjafjklsfnklsnvnf"
+    },
+    "development": {
+        "PORT": 8080,
+        "MONGODB_URI": "mongodb://localhost:27017/MusicApp",
+        "JWT_SECRET": "syrewerwdksajofhaophapoufftgjkfgghfcuauifgisohf"
+    }
+}
