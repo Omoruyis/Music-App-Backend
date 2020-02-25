@@ -40,7 +40,7 @@ app.post('/signup', (req, res) => {
 })
 
 app.post('/show', (req, res) => {
-    let body = _.pick(req.body, ['email', 'password', 'firstname', 'lastname', 'phone-number'])
+    let body = _.pick(req.body, ['email', 'password', 'name', 'phone-number', 'address'])
 
     res.send({
         thanks: 'that',
