@@ -19,7 +19,7 @@ app.use(cors())
 
 /*** SignUp Route */
 app.post('/signup', (req, res) => {
-    let body = _.pick(req.body, ['email', 'password', 'firstname', 'lastname', 'phone-number'])
+    let body = _.pick(req.body, ['email', 'password', 'name', 'phone-number', 'address'])
 
     User.findExistingEmail(body.email).then(email => {
         if (email) {
