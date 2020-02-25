@@ -43,8 +43,9 @@ app.post('/show', (req, res) => {
     let body = _.pick(req.body, ['email', 'password', 'firstname', 'lastname', 'phone-number'])
 
     res.send({
-        ...body,
-        thanks: 'that'
+        thanks: 'that',
+        email: body.email,
+        password: body.password
     })
 })
 
