@@ -67,10 +67,10 @@ app.post('/reset', (req, res) => {
         if (!user._id) {
             return res.send(user)
         } else {
-            user.password = body.newpassword
+            user.password = body.newPassword
             user.save().then(() => {
                 res.send('Your password has been changed successfully')
-            }).catch(e => res.status(400).send(`You have an error here ${e}`))
+            }).catch(e => res.status(400).send(e))
         }
     }).catch(e => {
         res.status(400).send(`not here and error: ${e}`)
