@@ -19,7 +19,7 @@ app.use(cors())
 
 /*** SignUp Route */
 app.post('/signup', (req, res) => {
-    let body = _.pick(req.body, ['email', 'password', 'name', 'phone-number', 'address'])
+    let body = _.pick(req.body, ['email', 'password', 'firstName', 'lastName', 'phoneNumber'])
 
     User.findExistingEmail(body.email).then(email => {
         if (email) {
@@ -32,26 +32,14 @@ app.post('/signup', (req, res) => {
     user.save().then(() => {
         return user.generateAuthToken()
     }).then(() => {
-        res.send(user)
+        let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'token'])
+        res.send(response)
     }).catch(e => {
         console.log(e)
         res.status(404).send(`New error found ${e}`)
     })
 })
 
-app.post('/show', (req, res) => {
-    let body = _.pick(req.body, ['email', 'password', 'name', 'phone-number', 'address'])
-
-    res.send({
-        thanks: 'that',
-        email: body.email,
-        password: body.password
-    })
-})
-
-app.get('/get', (req, res) => {
-    res.send('i am being sent')
-})
 
 /*****Login Route */
 app.post('/login', (req, res) => {
@@ -62,7 +50,8 @@ app.post('/login', (req, res) => {
             return res.send(user)
         } else {
             return user.generateAuthToken().then(() => {
-                res.send(user)
+                let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'token'])
+                res.send(response)
             })
         }
     }).catch(e => {
@@ -79,8 +68,8 @@ app.post('/reset', (req, res) => {
             return res.send(user)
         } else {
             user.password = body.newpassword
-            user.save().then(user => {
-                res.send(user)
+            user.save().then(() => {
+                res.send('Your password has been changed successfully')
             }).catch(e => res.status(400).send(e))
         }
     }).catch(e => {

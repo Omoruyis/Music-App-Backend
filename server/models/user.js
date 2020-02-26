@@ -21,23 +21,20 @@ var UserSchema = new mongoose.Schema({
         required: true,
         minlength: 6
     }, 
-    name: {
+    firstName: {
         type: String,
         required: true,
-        minlength: 1,
         trim: true
     }, 
-    'phone-number': {
+    lasName: {
+        type: String,
+        required: true,
+        trim: true
+    }, 
+    phoneNumber: {
         type: Number,
         required: true,
-        minlength: 1,
         trim: true,
-    }, 
-    address: {
-        type: String,
-        required: true,
-        minlength: 1,
-        trim: true
     }, 
     tokens: [{
         access: {
