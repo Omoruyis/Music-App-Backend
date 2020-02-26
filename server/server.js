@@ -77,6 +77,10 @@ app.post('/reset', (req, res) => {
     })
 })
 
+app.get('/get', (req, res) => {
+    res.send('im being sent')
+})
+
 app.listen(port, () => {
     console.log(`server listening on port ${port}`)
 })

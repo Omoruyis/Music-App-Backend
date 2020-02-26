@@ -26,7 +26,7 @@ var UserSchema = new mongoose.Schema({
         required: true,
         trim: true
     }, 
-    lasName: {
+    lastName: {
         type: String,
         required: true,
         trim: true
