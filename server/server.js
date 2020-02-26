@@ -32,7 +32,7 @@ app.post('/signup', (req, res) => {
     user.save().then(() => {
         return user.generateAuthToken()
     }).then(() => {
-        let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'token'])
+        let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'tokens'])
         res.send(response)
     }).catch(e => {
         console.log(e)
