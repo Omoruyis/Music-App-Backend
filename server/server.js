@@ -61,7 +61,7 @@ app.post('/login', (req, res) => {
 
 /******Reset password */
 app.post('/reset', (req, res) => {
-    const body = _.pick(req.body, ['email', 'password', 'newpassword'])
+    const body = _.pick(req.body, ['email', 'password', 'newPassword'])
 
     User.findByCredentials(body.email, body.password).then(user => {
         if (!user._id) {
