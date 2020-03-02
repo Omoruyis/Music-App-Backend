@@ -46,7 +46,6 @@ app.post('/signup', async (req, res) => {
         let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'tokens'])
         res.send(response)
     }).catch(e => {
-        console.log(e)
         res.status(404).send(`New error found ${e}`)
     })
 })
@@ -110,34 +109,36 @@ app.get('/search', async (req, res) => {
 
 
 app.get('/search/:type', authenticate, async (req, res) => {
-    const type = req.params.type
-    const body = _.pick(req.body, ['id'])
-    if (type === 'artist') {
-        let result = {}
-        result.mostPlayed = await callAxios('get', `/${type}/${body.id}/top`)
-        result.tracklist = await callAxios('get', `/${type}/${body.id}/top?limit=50`)
-        result.relatedArtists = await callAxios('get', `/${type}/${body.id}/related`)
-        result.playlists = await callAxios('get', `/${type}/${body.id}/playlists`)
-        result.albums = await callAxios('get', `/${type}/${body.id}/albums`)
-        return res.send(result)
-    } else if (type === 'track') {
-        return res.send(`https://www.deezer.com/track/${body.id}`)
+    try {
+        const type = req.params.type
+        const body = _.pick(req.body, ['id'])
+        if (type === 'artist') {
+            let result = {}
+            result.mostPlayed = await callAxios('get', `/${type}/${body.id}/top`)
+            result.tracklist = await callAxios('get', `/${type}/${body.id}/top?limit=50`)
+            result.relatedArtists = await callAxios('get', `/${type}/${body.id}/related`)
+            result.playlists = await callAxios('get', `/${type}/${body.id}/playlists`)
+            result.albums = await callAxios('get', `/${type}/${body.id}/albums`)
+            return res.send(result)
+        } else if (type === 'track') {
+            return res.send(`https://www.deezer.com/track/${body.id}`)
+        }
+        const tracks = await callAxios('get', `/${type}/${body.id}/tracks`)
+        res.send(tracks)
+    } catch (e) {
+        res.status(400).send(e)
     }
-    callAxios('get', `/${type}/${body.id}/tracks`).then(tracks => res.send(tracks))
 })
 
 
 /*********Explore for Home Page */
-app.get('/explore', (req, res) => {
+app.get('/explore', async (req, res) => {
     let result = {}
-    async function explore() {
-        result.chartAlbums = await callAxios('get', `/chart/0/albums`)
-        // result.chartArtists = await callAxios('get', `/chart/0/artists`)
-        result.tracks = await callAxios('get', `/chart/0/tracks`)
-        // result.playlists = await callAxios('get', `/chart/0/playlists`)
-        res.send(result)
-    }
-    explore()
+    result.chartAlbums = await callAxios('get', `/chart/0/albums`)
+    // result.chartArtists = await callAxios('get', `/chart/0/artists`)
+    result.tracks = await callAxios('get', `/chart/0/tracks`)
+    // result.playlists = await callAxios('get', `/chart/0/playlists`)
+    res.send(result)
 })
 
 /**********Add music */
@@ -175,55 +176,105 @@ app.post('/add', authenticate, async (req, res) => {
             createdAt: new Date().getTime()
         })
 
-        data.save().then((data) => {
-            res.send(data)
-        }).catch(e => {
-            console.log(e)
-            res.status(404).send(`New error found ${e}`)
+        const result = await data.save()
+        res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+app.post('/createplaylist', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['title'])
+
+        const data = new Type({
+            _creator: req.user._id,
+            information: { title: body.title },
+            createdAt: new Date().getTime()
         })
+
+
     } catch (e) {
         res.status(400).send(e)
     }
 })
 
 app.get('/alltracks', authenticate, async (req, res) => {
-    const tracks = await Track.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }])
-    let album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }])
-    res.send(album)
+    try {
+        const tracks = await Track.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { track: '$information', cover: '$information.album.cover', type: '$information.type' } }])
+        let album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { track: '$information.tracks.data', cover: '$information.cover', type: '$information.type' } }, { $unwind: { path: '$track' } }])
+        result = tracks.concat(album).sort((a, b) => a.track.title < b.track.title ? -1 : a.track.title > b.track.title ? 1 : 0)
+        res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
 })
 
 app.get('/allalbums', authenticate, async (req, res) => {
-    Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }]).then(albums => {
+    try {
+        const albums = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }])
         res.send(albums)
-    })
+    } catch (e) {
+        res.status(400).send(e)
+    }
 })
 
 app.get('/allplaylists', authenticate, async (req, res) => {
-    Playlist.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }]).then(playlists => {
+    try {
+        const playlists = await Playlist.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }])
         res.send(playlists)
-    })
+    } catch (e) {
+        res.status(400).send(e)
+    }
 })
 
 app.get('/allartists', authenticate, async (req, res) => {
-    Artist.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { name: 1 } }]).then(artists => {
-        res.send(artists)
-    })
+    try {
+        const album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $group: { _id: { id: '$information.artist.id', name: '$information.artist.name', picture: '$information.artist.picture' } } }, { $sort: { 'information.title': 1 } }, { $project: { id: '$_id.id', name: '$_id.name', picture: '$_id.picture', _id: 0 } }])
+
+        const tracks = await Track.aggregate([{ $match: { _creator: req.user._id } }, { $group: { _id: { id: '$information.artist.id', name: '$information.artist.name', picture: '$information.artist.picture' } } }, { $sort: { 'information.title': 1 } }, { $project: { id: '$_id.id', name: '$_id.name', picture: '$_id.picture', _id: 0 } }])
+
+        let result = [].concat(album).concat(tracks)
+        result = result.reduce((obj, cur) => {
+            if (!obj[cur.id]) obj[cur.name] = { name: cur.name, id: cur.id, picture: cur.picture }
+            return obj
+        }, {})
+        let keys = Object.keys(result)
+        keys = keys.map(key => {
+            return {
+                name: result[key].name,
+                id: result[key].id,
+                picture: result[key].picture
+            }
+        })
+        res.send(keys)
+    } catch (e) {
+        res.status(400).send(e)
+    }
 })
 
 app.get('/artist/music', authenticate, async (req, res) => {
-    const body = _.pick(req.body, ['id'])
-    const tracks = await Track.find({ _creator: req.user._id, 'information.artist.id': body.id })
-    const albums = await Album.aggregate([{ $match: { _creator: req.user._id, 'information.artist.id': body.id } }])
-    const music = tracks.concat(albums).sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
-    res.send(music)
+    try {
+        const body = _.pick(req.body, ['id'])
+        const tracks = await Track.find({ _creator: req.user._id, 'information.artist.id': body.id })
+        const albums = await Album.aggregate([{ $match: { _creator: req.user._id, 'information.artist.id': body.id } }])
+        const music = tracks.concat(albums).sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
+        res.send(music)
+    } catch (e) {
+        res.status(400).send(e)
+    }
 })
 
 app.get('/recentlyAdded', authenticate, async (req, res) => {
-    const playlists = await Playlist.aggregate([{ $sort: { 'information.createdAt': 1 } }])
-    const tracks = await Track.aggregate([{ $sort: { 'information.createdAt': 1 } }])
-    const albums = await Album.aggregate([{ $sort: { 'information.createdAt': 1 } }])
-    const result = playlists.concat(tracks).concat(albums).sort((a, b) => a['createdAt'] - b['createdAt']).map(cur => cur.createdAt).slice(0, 20)
-    res.send(result)
+    try {
+        const playlists = await Playlist.aggregate([{ $sort: { 'information.createdAt': 1 } }])
+        const tracks = await Track.aggregate([{ $sort: { 'information.createdAt': 1 } }])
+        const albums = await Album.aggregate([{ $sort: { 'information.createdAt': 1 } }])
+        const result = playlists.concat(tracks).concat(albums).sort((a, b) => a['createdAt'] - b['createdAt']).map(cur => cur.createdAt).slice(0, 20)
+        res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
 })
 
 
