@@ -4,6 +4,7 @@ const _ = require('lodash')
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
+const { ObjectID } = require('mongodb')
 
 const { mongoose } = require('./db/mongoose')
 const { User } = require('./models/user')
@@ -69,7 +70,7 @@ app.post('/login', (req, res) => {
     })
 })
 
-/******Reset password */
+/******Reset password Route*/
 app.post('/reset', (req, res) => {
     const body = _.pick(req.body, ['email', 'password', 'newPassword'])
 
@@ -87,7 +88,7 @@ app.post('/reset', (req, res) => {
     })
 })
 
-/*******Search */
+/*******Public Search Route*/
 app.get('/search', async (req, res) => {
     try {
         const body = _.pick(req.body, ['searchQuery'])
@@ -107,7 +108,7 @@ app.get('/search', async (req, res) => {
     }
 })
 
-
+/*****Public search Route for specific type*/
 app.get('/search/:type', authenticate, async (req, res) => {
     try {
         const type = req.params.type
@@ -133,12 +134,35 @@ app.get('/search/:type', authenticate, async (req, res) => {
 
 /*********Explore for Home Page */
 app.get('/explore', async (req, res) => {
-    let result = {}
-    result.chartAlbums = await callAxios('get', `/chart/0/albums`)
-    // result.chartArtists = await callAxios('get', `/chart/0/artists`)
-    result.tracks = await callAxios('get', `/chart/0/tracks`)
-    // result.playlists = await callAxios('get', `/chart/0/playlists`)
-    res.send(result)
+    try {
+        let result = {}
+        result.chartAlbums = await callAxios('get', `/chart/0/albums`)
+        // result.chartArtists = await callAxios('get', `/chart/0/artists`)
+        result.tracks = await callAxios('get', `/chart/0/tracks`)
+        // result.playlists = await callAxios('get', `/chart/0/playlists`)
+        res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/*****Delete Route */
+app.delete('/delete', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['type', '_id'])
+        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
+
+        if (!ObjectID.isValid(body._id)) {
+            return res.status(404).send('This is not a valid ID')
+        }
+        const response = await Type.findOneAndRemove({ _creator: req.user._id, _id: body._id })
+        if (!response) {
+            res.send(`This ${body.type} does not exist`)
+        }
+        res.send(response)
+    } catch (e) {
+        res.status(400).send(e)
+    }
 })
 
 /**********Add music */
@@ -183,22 +207,71 @@ app.post('/add', authenticate, async (req, res) => {
     }
 })
 
+/*****Create Playlist Route */
 app.post('/createplaylist', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['title'])
+        const exists = await Playlist.find({ _creator: req.user._id, 'information.title': body.title })
+        if (exists.length > 0) {
+            return res.send('This playlist already exists')
+        }
 
-        const data = new Type({
+        const data = new Playlist({
             _creator: req.user._id,
-            information: { title: body.title },
+            information: {
+                title: body.title, tracks: {
+                    data: []
+                }
+            },
             createdAt: new Date().getTime()
         })
 
-
+        const result = await data.save()
+        res.send(result)
     } catch (e) {
         res.status(400).send(e)
     }
 })
 
+/*****Add to playlist Route */
+app.patch('/addtoplaylist', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['data', 'title'])
+        let playlist = await Playlist.findOne({ _creator: req.user._id, 'information.title': body.title })
+        if (!playlist) {
+            return res.send(`Playlist doesn't exist`)
+        }
+        playlist.information.tracks.data.forEach(cur => {
+            if (cur.id === body.data.id && cur.type === body.data.type) {
+                return res.send('This song is already in this playlist')
+            }
+        })
+        playlist.information = { ...playlist.information, tracks: { ...playlist.information.tracks, data: [...playlist.information.tracks.data, body.data] } }
+        const result = await playlist.save()
+        res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/*****Delete from playlist Route */
+app.delete('/deletefromplaylist', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['id', '_id'])
+        let playlist = await Playlist.findOne({ _creator: req.user._id, _id: body._id })
+        if (!playlist) {
+            return res.send('Playlist does not exist')
+        }
+        const arr = playlist.information.tracks.data.filter(cur => !body.id.includes(cur.id))
+        playlist.information = { ...playlist.information, tracks: { ...playlist.information.tracks, data: arr }}
+        const result = await playlist.save()
+        res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/*****All tracks Route */
 app.get('/alltracks', authenticate, async (req, res) => {
     try {
         const tracks = await Track.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { track: '$information', cover: '$information.album.cover', type: '$information.type' } }])
@@ -210,6 +283,7 @@ app.get('/alltracks', authenticate, async (req, res) => {
     }
 })
 
+/*****All Albums Route */
 app.get('/allalbums', authenticate, async (req, res) => {
     try {
         const albums = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }])
@@ -219,6 +293,7 @@ app.get('/allalbums', authenticate, async (req, res) => {
     }
 })
 
+/*****All Playlists Route */
 app.get('/allplaylists', authenticate, async (req, res) => {
     try {
         const playlists = await Playlist.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }])
@@ -228,6 +303,7 @@ app.get('/allplaylists', authenticate, async (req, res) => {
     }
 })
 
+/*****All Artists Route */
 app.get('/allartists', authenticate, async (req, res) => {
     try {
         const album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $group: { _id: { id: '$information.artist.id', name: '$information.artist.name', picture: '$information.artist.picture' } } }, { $sort: { 'information.title': 1 } }, { $project: { id: '$_id.id', name: '$_id.name', picture: '$_id.picture', _id: 0 } }])
@@ -253,6 +329,7 @@ app.get('/allartists', authenticate, async (req, res) => {
     }
 })
 
+/*****Music for an Artist Route */
 app.get('/artist/music', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['id'])
@@ -265,12 +342,13 @@ app.get('/artist/music', authenticate, async (req, res) => {
     }
 })
 
+/*****Recently Added Route */
 app.get('/recentlyAdded', authenticate, async (req, res) => {
     try {
-        const playlists = await Playlist.aggregate([{ $sort: { 'information.createdAt': 1 } }])
-        const tracks = await Track.aggregate([{ $sort: { 'information.createdAt': 1 } }])
-        const albums = await Album.aggregate([{ $sort: { 'information.createdAt': 1 } }])
-        const result = playlists.concat(tracks).concat(albums).sort((a, b) => a['createdAt'] - b['createdAt']).map(cur => cur.createdAt).slice(0, 20)
+        const playlists = await Playlist.aggregate([{ $sort: { 'information.createdAt': -1 } }])
+        const tracks = await Track.aggregate([{ $sort: { 'information.createdAt': -1 } }])
+        const albums = await Album.aggregate([{ $sort: { 'information.createdAt': -1 } }])
+        const result = playlists.concat(tracks).concat(albums).sort((a, b) => b['createdAt'] - a['createdAt']).map(cur => cur.createdAt).slice(0, 20)
         res.send(result)
     } catch (e) {
         res.status(400).send(e)
