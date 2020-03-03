@@ -12,6 +12,7 @@ const { Track } = require('./models/track')
 const { Album } = require('./models/album')
 const { Playlist } = require('./models/playlist')
 const { Artist } = require('./models/artist')
+const { Like } = require('./models/like')
 const { callAxios, callAxiosData } = require('./config/deezer')
 const { authenticate } = require('./middleware/authenticate')
 
@@ -132,7 +133,7 @@ app.get('/search/:type', authenticate, async (req, res) => {
 })
 
 
-/*********Explore for Home Page */
+/*********Explore for Home Page Route*/
 app.get('/explore', async (req, res) => {
     try {
         let result = {}
@@ -141,6 +142,85 @@ app.get('/explore', async (req, res) => {
         result.tracks = await callAxios('get', `/chart/0/tracks`)
         // result.playlists = await callAxios('get', `/chart/0/playlists`)
         res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/*****Like Route */
+app.post('/like', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['type', '_id', 'data'])
+        const Type = body.type === 'track' ? Track : Album
+
+        if (!ObjectID.isValid(body._id)) {
+            return res.status(404).send('This is not a valid ID')
+        }
+        const result = await Type.findOne({ _creator: req.user._id, _id: body._id })
+        if (!result) {
+            return res.send(`This ${body.type} doesn't exist`)
+        }
+        result.liked = true
+        const response = await result.save()
+
+        const like = new Like({
+            _creator: req.user._id,
+            _id: body._id,
+            information: body.data,
+            createdAt: new Date().getTime(),
+            type: body.type
+        })
+
+        const likeResult = await like.save()
+        res.send({
+            response,
+            likeResult
+        })
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/*****Unlike Route */
+app.delete('/unlike', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['type', '_id'])
+        const Type = body.type === 'track' ? Track : Album
+
+        if (!ObjectID.isValid(body._id)) {
+            return res.status(404).send('This is not a valid ID')
+        }
+
+        const result = await Type.findOne({ _creator: req.user._id, _id: body._id })
+        if (!result) {
+            return res.send(`This ${body.type} doesn't exist`)
+        }
+        result.liked = false
+        const response = await result.save()
+
+        const remove = await Like.findOneAndRemove({ _creator: req.user._id, _id: body._id, type: body.type })
+        if (!remove) {
+            return res.send(`This ${body.type} doesn't exist in favourites`)
+        }
+
+        res.send({
+            response,
+            remove
+        })
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/*****Get Likes Route */
+app.get('/getlikes', authenticate, async (req, res) => {
+    try {
+        const albumLikes = await Like.find({ _creator: req.user._id, type: 'album' })
+        const trackLikes = await Like.find({ _creator: req.user._id, type: 'track' })
+        res.send({
+            albumLikes,
+            trackLikes
+        })
     } catch (e) {
         res.status(400).send(e)
     }
@@ -211,8 +291,8 @@ app.post('/add', authenticate, async (req, res) => {
 app.post('/createplaylist', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['title'])
-        const exists = await Playlist.find({ _creator: req.user._id, 'information.title': body.title })
-        if (exists.length > 0) {
+        const exists = await Playlist.findOne({ _creator: req.user._id, 'information.title': body.title })
+        if (exists) {
             return res.send('This playlist already exists')
         }
 
@@ -263,7 +343,7 @@ app.delete('/deletefromplaylist', authenticate, async (req, res) => {
             return res.send('Playlist does not exist')
         }
         const arr = playlist.information.tracks.data.filter(cur => !body.id.includes(cur.id))
-        playlist.information = { ...playlist.information, tracks: { ...playlist.information.tracks, data: arr }}
+        playlist.information = { ...playlist.information, tracks: { ...playlist.information.tracks, data: arr } }
         const result = await playlist.save()
         res.send(result)
     } catch (e) {

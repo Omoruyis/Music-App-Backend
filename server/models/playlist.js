@@ -5,10 +5,6 @@ var PlaylistSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true
     },
-    liked: {
-        type: Boolean,
-        default: false
-    },
     information: {
         type: Object,
         required: true,
