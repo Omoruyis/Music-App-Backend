@@ -44,9 +44,9 @@ app.post('/signup', async (req, res) => {
 
     user.save().then(() => {
         return user.generateAuthToken()
-    }).then(() => {
+    }).then((token) => {
         let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'tokens'])
-        res.send(response)
+        res.header('authorization', token).send(response)
     }).catch(e => {
         res.status(404).send(`New error found ${e}`)
     })
@@ -61,9 +61,9 @@ app.post('/login', (req, res) => {
         if (!user._id) {
             return res.send(user)
         } else {
-            return user.generateAuthToken().then(() => {
+            return user.generateAuthToken().then((token) => {
                 let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'token'])
-                res.send(response)
+                res.header('authorization', token).send(response)
             })
         }
     }).catch(e => {
@@ -439,3 +439,5 @@ app.get('/recentlyAdded', authenticate, async (req, res) => {
 app.listen(port, () => {
     console.log(`server listening on port ${port}`)
 })
+
+module.exports = { app }
