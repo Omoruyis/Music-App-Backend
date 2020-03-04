@@ -27,30 +27,30 @@ app.use(cors())
 
 
 /*** SignUp Route */
-app.post('/signup', async (req, res) => {
-    let body = _.pick(req.body, ['email', 'password', 'firstName', 'lastName', 'phoneNumber'])
-    let action
+// app.post('/signup', async (req, res) => {
+//     let body = _.pick(req.body, ['email', 'password', 'firstName', 'lastName', 'phoneNumber'])
+//     let action
 
-    try {
-        action = await User.findExistingEmail(body.email)
-        if (action) {
-            return res.send(action)
-        }
-    } catch (e) {
-        res.status(400).send(e)
-    }
+//     try {
+//         action = await User.findExistingEmail(body.email)
+//         if (action) {
+//             return res.send(action)
+//         }
+//     } catch (e) {
+//         res.status(400).send(e)
+//     }
 
-    const user = new User(body)
+//     const user = new User(body)
 
-    user.save().then(() => {
-        return user.generateAuthToken()
-    }).then((token) => {
-        let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'tokens'])
-        res.header('authorization', token).send(response)
-    }).catch(e => {
-        res.status(404).send(`New error found ${e}`)
-    })
-})
+//     user.save().then(() => {
+//         return user.generateAuthToken()
+//     }).then((token) => {
+//         let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'tokens'])
+//         res.header('authorization', token).send(response)
+//     }).catch(e => {
+//         res.status(404).send(`New error found ${e}`)
+//     })
+// })
 
 
 /*****Login Route */
