@@ -90,7 +90,7 @@ app.post('/reset', (req, res) => {
 })
 
 /*******Public Search Route*/
-app.get('/search', async (req, res) => {
+app.get('/search', async(req, res) => {
     try {
         const body = _.pick(req.body, ['searchQuery'])
         let result = {}
