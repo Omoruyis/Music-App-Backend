@@ -5,37 +5,42 @@ const _ = require('lodash')
 const bcrypt = require('bcryptjs')
 
 var UserSchema = new mongoose.Schema({
-    email: {
+    method: {
         type: String,
-        required: true,
-        minlength: 1,
-        trim: true,
-        unique: true,
-        validate: {
-            validator: validator.isEmail,
-            message: '{VALUE} is not a valid email'
+        enum: ['local', 'google']
+    },
+    local: {
+        email: {
+            type: String,
+            minlength: 1,
+            trim: true,
+            unique: true,
+            validate: {
+                validator: validator.isEmail,
+                message: '{VALUE} is not a valid email'
+            },
+        }, 
+        password: {
+            type: String,
+            minlength: 6
+        }, 
+        userName: {
+            type: String,
+            trim: true
+        }, 
+    },
+    google: {
+        id: {
+            type: String
         },
-    }, 
-    password: {
-        type: String,
-        required: true,
-        minlength: 6
-    }, 
-    firstName: {
-        type: String,
-        required: true,
-        trim: true
-    }, 
-    lastName: {
-        type: String,
-        required: true,
-        trim: true
-    }, 
-    phoneNumber: {
-        type: Number,
-        required: true,
-        trim: true,
-    }, 
+        email: {
+            type: String,
+            lowercase: true
+        },
+        displayName: {
+            type: String, 
+        }
+    },
     tokens: [{
         access: {
             type: String,
@@ -55,7 +60,7 @@ UserSchema.methods.generateAuthToken = function () {
     const token = jwt.sign({_id: user._id.toHexString(), access}, process.env.JWT_SECRET).toString()
 
     user.tokens = user.tokens.concat([{access, token}]) 
-
+    
     return user.save().then(() => {
         return token
     })  
@@ -66,14 +71,14 @@ UserSchema.methods.generateAuthToken = function () {
 UserSchema.statics.findByCredentials = function (email, password) {
     const User = this;
 
-    return User.findOne({ email }).then(user => {
+    return User.findOne({ 'local.email' :email }).then(user => {
 
         return new Promise((resolve, reject) => {
             if (!user) {
                 resolve('Wrong email address')
             }
 
-            bcrypt.compare(password, user.password, (err, res) => {
+            bcrypt.compare(password, user.local.password, (err, res) => {
                 if (res) {
                     resolve(user)
                 }
@@ -83,6 +88,13 @@ UserSchema.statics.findByCredentials = function (email, password) {
             })
         })
     })
+}
+
+UserSchema.statics.findExistingGoogleAccount = function (id) {
+    const User = this 
+
+    return User.findOne({ 'google.id': id})
+
 }
 
 UserSchema.statics.findByToken = function (token) {
@@ -104,7 +116,7 @@ UserSchema.statics.findByToken = function (token) {
 UserSchema.statics.findExistingEmail = function (email) {
     const User = this
 
-    return User.findOne({ email }).then(user => {
+    return User.findOne({ 'local.email': email }).then(user => {
         return new Promise((resolve, reject) => {
             if (user) {
                 resolve('User already exists')
@@ -118,11 +130,15 @@ UserSchema.statics.findExistingEmail = function (email) {
 UserSchema.pre('save', function (next) {
     const user = this;
 
-    if (!user.isModified('password')) next()
+    if (user.method !== 'local') {
+        next()
+    }
+
+    if (!user.isModified('local.password')) next()
 
     bcrypt.genSalt(10, (err, salt) => {
-        bcrypt.hash(user.password, salt, (err, hash) => {
-            user.password = hash
+        bcrypt.hash(user.local.password, salt, (err, hash) => {
+            user.local.password = hash
             next()
         })
     });

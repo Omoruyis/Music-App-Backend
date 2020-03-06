@@ -1,10 +1,12 @@
 require('./config/config')
+require('./passport/passport')
 
 const _ = require('lodash')
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const { ObjectID } = require('mongodb')
+const passport = require('passport')
 
 const { mongoose } = require('./db/mongoose')
 const { User } = require('./models/user')
@@ -19,16 +21,26 @@ const { authenticate } = require('./middleware/authenticate')
 const port = process.env.PORT
 const app = express()
 
+app.use(passport.initialize());
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(cors())
 
+app.post('/passport', passport.authenticate('googleToken'), async (req, res) => {
+    try {
+        const user = req.user
+        const token = await user.generateAuthToken()
+        res.header('authorization', token).send(user)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
 
 /*** SignUp Route */
 app.post('/signup', async (req, res) => {
-    let body = _.pick(req.body, ['email', 'password', 'firstName', 'lastName', 'phoneNumber'])
+    let body = _.pick(req.body, ['email', 'password', 'userName'])
     let action
 
     try {
@@ -40,12 +52,16 @@ app.post('/signup', async (req, res) => {
         res.status(400).send(e)
     }
 
-    const user = new User(body)
+    const user = new User({
+        method: 'local',
+        local: body
+    })
 
     user.save().then(() => {
         return user.generateAuthToken()
     }).then((token) => {
-        let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'tokens'])
+        let response = _.pick(user, ['method', 'local'])
+        response.token = token
         res.header('authorization', token).send(response)
     }).catch(e => {
         res.status(404).send(`New error found ${e}`)
@@ -54,22 +70,32 @@ app.post('/signup', async (req, res) => {
 
 
 /*****Login Route */
-app.post('/login', (req, res) => {
-    const body = _.pick(req.body, ['email', 'password'])
+// app.post('/login', (req, res) => {
+//     const body = _.pick(req.body, ['email', 'password'])
 
-    User.findByCredentials(body.email, body.password).then(user => {
-        if (!user._id) {
-            return res.send(user)
-        } else {
-            return user.generateAuthToken().then((token) => {
-                let response = _.pick(user, ['email', 'firstName', 'lastName', 'phoneNumber', 'token'])
-                res.header('authorization', token).send(response)
-            })
-        }
-    }).catch(e => {
-        res.status(400).send(`not here and error: ${e}`)
-    })
-})
+//     User.findByCredentials(body.email, body.password).then(user => {
+//         if (!user._id) {
+//             return res.send(user)
+//         } else {
+//             return user.generateAuthToken().then((token) => {
+//                 let response = _.pick(user, ['method', 'local'])
+//                 response.token = token
+//                 res.header('authorization', token).send(response)
+//             })
+//         }
+//     }).catch(e => {
+//         res.status(400).send(`not here and error: ${e}`)
+//     })
+// })
+
+app.post('/login', passport.authenticate('local'), async (req, res) => {
+    try {
+        const token = req.user.token
+        res.header('authorization', token).send(req.user)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+});
 
 /******Reset password Route*/
 app.post('/reset', (req, res) => {
