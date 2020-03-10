@@ -38,7 +38,7 @@ passport.use(new Strategy({
 passport.use(new GoogleStrategy({
     clientID: '271277109562-8tt8jqb5m0cg2b5pgph5ig419irp4ir2.apps.googleusercontent.com',
     clientSecret: 'bqAahMarf6IE8V1WZKM1Lfnm',
-    callbackURL: "/passport"
+    callbackURL: "https://omoruyi-music-store-app.herokuapp.com/passport"
 }, async (accessToken, refreshToken, profile, done) => {
     try {
         console.log('thanks')
