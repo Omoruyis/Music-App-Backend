@@ -27,13 +27,16 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(cors())
+// app.get('/', passport.authenticate('google', { scope: ['profile'] }))
 
-app.post('/passport', passport.authenticate('googleToken'), async (req, res) => {
+app.post('/passport', passport.authenticate('google', { scope: ['profile'] }), async (req, res) => {
     try {
+        console.log('yes')
         const user = req.user
         const token = await user.generateAuthToken()
         res.header('authorization', token).send(user)
     } catch (e) {
+        console.log('no')
         res.status(400).send(e)
     }
 })

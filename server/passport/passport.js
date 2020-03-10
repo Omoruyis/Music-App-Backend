@@ -1,7 +1,8 @@
 const _ = require('lodash')
 const passport = require('passport')
 const { Strategy } = require('passport-local')
-const GooglePlusTokenStrategy = require('passport-google-plus-token')
+// const GooglePlusTokenStrategy = require('passport-google-plus-token')
+const GoogleStrategy = require('passport-google-oauth20').Strategy
 
 const { User } = require('../models/user')
 
@@ -32,30 +33,65 @@ passport.use(new Strategy({
         }
     }
 ))
-   
 
-passport.use('googleToken', new GooglePlusTokenStrategy({
+
+passport.use(new GoogleStrategy({
     clientID: '271277109562-8tt8jqb5m0cg2b5pgph5ig419irp4ir2.apps.googleusercontent.com',
-    clientSecret: 'bqAahMarf6IE8V1WZKM1Lfnm'
+    clientSecret: 'bqAahMarf6IE8V1WZKM1Lfnm',
+    callbackURL: "/passport"
 }, async (accessToken, refreshToken, profile, done) => {
     try {
-        const user = await User.findExistingGoogleAccount(profile.id)
+        console.log('thanks')
+    console.log(accessToken)
+    console.log(profile)
+    } catch(e) {
+        console.log(e)
+    }
+    // try {
+    //     const user = await User.findExistingGoogleAccount(profile.id)
 
-        if (user) {
-            return done(null, user)
-        }
-        const newUser = new User({
-            method: 'google',
-            google: {
-                id: profile.id,
-                email: profile.emails[0].value,
-                displayName: profile.displayName
-            }
-        })
+    //     if (user) {
+    //         return done(null, user)
+    //     }
+    //     const newUser = new User({
+    //         method: 'google',
+    //         google: {
+    //             id: profile.id,
+    //             email: profile.emails[0].value,
+    //             displayName: profile.displayName
+    //         }
+    //     })
 
-        await newUser.save()
-        done(null, newUser)
-    } catch (e) {
-        done(e, false, e.message)
-    }   
+    //     await newUser.save()
+    //     done(null, newUser)
+    // } catch (e) {
+    //     done(e, false, e.message)
+    // }   
 }))
+   
+
+// passport.use('googleToken', new GooglePlusTokenStrategy({
+//     clientID: '271277109562-8tt8jqb5m0cg2b5pgph5ig419irp4ir2.apps.googleusercontent.com',
+//     clientSecret: 'bqAahMarf6IE8V1WZKM1Lfnm'
+// }, async (accessToken, refreshToken, profile, done) => {
+//     try {
+//         const user = await User.findExistingGoogleAccount(profile.id)
+
+//         if (user) {
+//             return done(null, user)
+//         }
+//         const newUser = new User({
+//             method: 'google',
+//             google: {
+//                 id: profile.id,
+//                 email: profile.emails[0].value,
+//                 displayName: profile.displayName
+//             }
+//         })
+
+//         await newUser.save()
+//         done(null, newUser)
+//     } catch (e) {
+//         done(e, false, e.message)
+//     }   
+// }))
