@@ -27,9 +27,9 @@ app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(cors())
-// app.get('/', passport.authenticate('google', { scope: ['profile'] }))
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }))
 
-app.post('/passport', passport.authenticate('google', { scope: ['profile'] }), async (req, res) => {
+app.get('/auth/google/callback', passport.authenticate('google', { scope: ['profile'] }), async (req, res) => {
     try {
         console.log('yes')
         const user = req.user
