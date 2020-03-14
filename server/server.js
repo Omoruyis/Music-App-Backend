@@ -169,12 +169,13 @@ app.get('/search/:type', authenticate, async (req, res) => {
             result.relatedArtists = await callAxios('get', `/${type}/${body.id}/related`)
             result.playlists = await callAxios('get', `/${type}/${body.id}/playlists`)
             result.albums = await callAxios('get', `/${type}/${body.id}/albums`)
+            result.typeDetails = await callAxiosData('get', `/${type}/${body.id}`)
             return res.send(result)
         } else if (type === 'track') {
             return res.send(`https://www.deezer.com/track/${body.id}`)
         }
-        const tracks = await callAxios('get', `/${type}/${body.id}/tracks`)
-        res.send(tracks)
+        const typeDetails = await callAxiosData('get', `/${type}/${body.id}`)
+        res.send({typeDetails})
     } catch (e) {
         res.status(400).send(e)
     }
@@ -186,7 +187,7 @@ app.get('/explore', async (req, res) => {
     try {
         let result = {}
         result.chartAlbums = await callAxios('get', `/chart/0/albums`)
-        // result.chartArtists = await callAxios('get', `/chart/0/artists`)
+        result.chartArtists = await callAxios('get', `/chart/0/artists`)
         result.tracks = await callAxios('get', `/chart/0/tracks`)
         // result.playlists = await callAxios('get', `/chart/0/playlists`)
         res.send(result)
