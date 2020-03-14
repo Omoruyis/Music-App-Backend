@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 var LikeSchema = new mongoose.Schema({
     _creator: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true
+        // required: true
     },
     _id: {
         type: mongoose.Schema.Types.ObjectId,

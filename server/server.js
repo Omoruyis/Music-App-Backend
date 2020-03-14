@@ -22,21 +22,40 @@ const port = process.env.PORT
 const app = express()
 
 app.use(passport.initialize());
+app.use(passport.session());
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({
     extended: true
 }));
 app.use(cors())
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }))
 
-app.get('/auth/google/callback', passport.authenticate('google', { scope: ['profile'] }), async (req, res) => {
+app.post('/googleLogin', async (req, res) => {
     try {
-        console.log('yes')
-        const user = req.user
-        const token = await user.generateAuthToken()
-        res.header('authorization', token).send(user)
+        const body = _.pick(req.body, ['id', 'email', 'displayName'])
+
+        const user = await User.findExistingGoogleAccount(body.id)
+        if (user) {
+            const token = await user.generateAuthToken()
+            let response = _.pick(user, ['method', 'google'])
+            response.token = token
+            return res.header('authorization', token).send(response)
+        }
+
+        const newUser = new User({
+            method: 'google',
+            google: {
+                id: body.id,
+                email: body.email,
+                displayName: body.displayName
+            }
+        })
+
+        const googleUser = await newUser.save()
+        const token = await googleUser.generateAuthToken()
+        let response = _.pick(googleUser, ['method', 'google'])
+        response.token = token
+        res.header('authorization', token).send(response)
     } catch (e) {
-        console.log('no')
         res.status(400).send(e)
     }
 })
@@ -176,6 +195,46 @@ app.get('/explore', async (req, res) => {
     }
 })
 
+/*****Like without downloaded Route */
+app.post('/likeUndownload', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['type', 'data'])
+        // const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Artist
+        const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.data.id, type: body.type })
+        if (result) {
+            return res.send('you already liked this')
+        }
+
+        const like = new Like({
+            _creator: req.user._id,
+            information: body.data,
+            _id: new ObjectID(),
+            createdAt: new Date().getTime(),
+            type: body.type
+        })
+
+        const likeResult = await like.save()
+        res.send(likeResult)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/*****unLike without downloaded Route */
+app.post('/unlikeUndownload', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['type', 'data'])
+        const result = await Like.findOneAndRemove({ _creator: req.user._id, 'information.id': body.data.id, type: body.type })
+        if (!result) {
+            return res.send(`This ${body.type} doesn't exist in favourites`)
+        }
+
+        res.send(result)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
 /*****Like Route */
 app.post('/like', authenticate, async (req, res) => {
     try {
@@ -246,9 +305,11 @@ app.get('/getlikes', authenticate, async (req, res) => {
     try {
         const albumLikes = await Like.find({ _creator: req.user._id, type: 'album' })
         const trackLikes = await Like.find({ _creator: req.user._id, type: 'track' })
+        const artistLikes = await Like.find({ _creator: req.user._id, type: 'artist' })
         res.send({
             albumLikes,
-            trackLikes
+            trackLikes,
+            artistLikes
         })
     } catch (e) {
         res.status(400).send(e)

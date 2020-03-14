@@ -35,41 +35,6 @@ passport.use(new Strategy({
 ))
 
 
-passport.use(new GoogleStrategy({
-    clientID: '271277109562-8tt8jqb5m0cg2b5pgph5ig419irp4ir2.apps.googleusercontent.com',
-    clientSecret: 'bqAahMarf6IE8V1WZKM1Lfnm',
-    callbackURL: "https://omoruyi-music-store-app.herokuapp.com/auth/google/callback"
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        console.log('thanks')
-    console.log(accessToken)
-    console.log(profile)
-    } catch(e) {
-        console.log(e)
-    }
-    // try {
-    //     const user = await User.findExistingGoogleAccount(profile.id)
-
-    //     if (user) {
-    //         return done(null, user)
-    //     }
-    //     const newUser = new User({
-    //         method: 'google',
-    //         google: {
-    //             id: profile.id,
-    //             email: profile.emails[0].value,
-    //             displayName: profile.displayName
-    //         }
-    //     })
-
-    //     await newUser.save()
-    //     done(null, newUser)
-    // } catch (e) {
-    //     done(e, false, e.message)
-    // }   
-}))
-   
-
 // passport.use('googleToken', new GooglePlusTokenStrategy({
 //     clientID: '271277109562-8tt8jqb5m0cg2b5pgph5ig419irp4ir2.apps.googleusercontent.com',
 //     clientSecret: 'bqAahMarf6IE8V1WZKM1Lfnm'
