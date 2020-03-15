@@ -157,7 +157,7 @@ app.get('/search', async (req, res) => {
 })
 
 /*****Public search Route for specific type*/
-app.get('/search/:type', authenticate, async (req, res) => {
+app.get('/search/:type', async (req, res) => {
     try {
         const type = req.params.type
         const body = _.pick(req.body, ['id'])
@@ -174,7 +174,7 @@ app.get('/search/:type', authenticate, async (req, res) => {
             return res.send(`https://www.deezer.com/track/${body.id}`)
         }
         const typeDetails = await callAxiosData('get', `/${type}/${body.id}`)
-        res.send({typeDetails})
+        res.send(typeDetails)
     } catch (e) {
         res.status(400).send(e)
     }
@@ -188,7 +188,7 @@ app.get('/authenticate', (req, res) => {
             return Promise.reject()
         }
 
-        res.send('there is user')
+        res.send('Welcome')
     }).catch(e => {
         res.status(401).send(e)
     })
@@ -362,21 +362,21 @@ app.post('/add', authenticate, async (req, res) => {
             return res.send(action)
         }
 
-        if (body.type !== 'playlist') {
-            const existingArtist = await Artist.findExistingInformation(req.user._id, add.artist.id)
+        // if (body.type !== 'playlist') {
+        //     const existingArtist = await Artist.findExistingInformation(req.user._id, add.artist.id)
 
-            if (!existingArtist) {
-                const artist = new Artist({
-                    _creator: req.user._id,
-                    name: add.artist.name,
-                    id: add.artist.id,
-                    picture: add.artist.picture,
-                    createdAt: new Date().getTime()
-                })
+        //     if (!existingArtist) {
+        //         const artist = new Artist({
+        //             _creator: req.user._id,
+        //             name: add.artist.name,
+        //             id: add.artist.id,
+        //             picture: add.artist.picture,
+        //             createdAt: new Date().getTime()
+        //         })
 
-                await artist.save()
-            }
-        }
+        //         await artist.save()
+        //     }
+        // }
 
         const data = new Type({
             _creator: req.user._id,
