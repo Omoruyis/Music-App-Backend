@@ -157,7 +157,7 @@ app.get('/search', async (req, res) => {
 })
 
 /*****Public search Route for specific type*/
-app.get('/search/:type', async (req, res) => {
+app.post('/search/:type', async (req, res) => {
     try {
         const type = req.params.type
         const body = _.pick(req.body, ['id'])
