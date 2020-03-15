@@ -32,15 +32,15 @@ app.use(cors())
 app.post('/googleLogin', async (req, res) => {
     try {
         const body = _.pick(req.body, ['id', 'email', 'displayName'])
-
         const user = await User.findExistingGoogleAccount(body.id)
+        
         if (user) {
             const token = await user.generateAuthToken()
             let response = _.pick(user, ['method', 'google'])
             response.token = token
             return res.header('authorization', token).send(response)
         }
-
+        
         const newUser = new User({
             method: 'google',
             google: {
@@ -49,7 +49,6 @@ app.post('/googleLogin', async (req, res) => {
                 displayName: body.displayName
             }
         })
-
         const googleUser = await newUser.save()
         const token = await googleUser.generateAuthToken()
         let response = _.pick(googleUser, ['method', 'google'])
@@ -179,6 +178,20 @@ app.get('/search/:type', authenticate, async (req, res) => {
     } catch (e) {
         res.status(400).send(e)
     }
+})
+
+app.get('/authenticate', (req, res) => {
+    const token = req.header('authorization').split(' ')[1]
+
+    User.findByToken(token).then(user => {
+        if (!user) {
+            return Promise.reject()
+        }
+
+        res.send('there is user')
+    }).catch(e => {
+        res.status(401).send(e)
+    })
 })
 
 
