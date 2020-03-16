@@ -209,6 +209,20 @@ app.get('/explore', async (req, res) => {
     }
 })
 
+/***Find like */
+app.post('/checklike', authenticate, async (req, res) => {
+    try { 
+        const body = _.pick(req.body, ['id', 'type'])
+        const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.id, 'information.type': body.type })
+         if (result) {
+             return res.send(true)
+         } 
+         res.send(false)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
 /*****Like without downloaded Route */
 app.post('/likeUndownload', authenticate, async (req, res) => {
     try {
@@ -331,20 +345,22 @@ app.get('/getlikes', authenticate, async (req, res) => {
 })
 
 /*****Delete Route */
-app.delete('/delete', authenticate, async (req, res) => {
+app.post('/delete', authenticate, async (req, res) => {
     try {
-        const body = _.pick(req.body, ['type', '_id'])
+        console.log('yo')
+        const body = _.pick(req.body, ['type', 'id'])
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
 
-        if (!ObjectID.isValid(body._id)) {
-            return res.status(404).send('This is not a valid ID')
-        }
-        const response = await Type.findOneAndRemove({ _creator: req.user._id, _id: body._id })
+        // if (!ObjectID.isValid(body._id)) {
+        //     return res.status(404).send('This is not a valid ID')
+        // }
+        const response = await Type.findOneAndRemove({ _creator: req.user._id, 'information.id': body.id })
         if (!response) {
             res.send(`This ${body.type} does not exist`)
         }
         res.send(response)
     } catch (e) {
+        console.log(e)
         res.status(400).send(e)
     }
 })
@@ -356,28 +372,14 @@ app.post('/add', authenticate, async (req, res) => {
         const add = await callAxiosData('get', `/${body.type}/${body.id}`)
 
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
+        const response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
 
-        const action = await Type.findExistingInformation(req.user._id, add.id)
-        if (action) {
-            return res.send(action)
+        if (response) {
+            console.log('was here before')
+            response.information.tracks.data = add.tracks.data
+            const result = await response.save()
+            return res.send(result)
         }
-
-        // if (body.type !== 'playlist') {
-        //     const existingArtist = await Artist.findExistingInformation(req.user._id, add.artist.id)
-
-        //     if (!existingArtist) {
-        //         const artist = new Artist({
-        //             _creator: req.user._id,
-        //             name: add.artist.name,
-        //             id: add.artist.id,
-        //             picture: add.artist.picture,
-        //             createdAt: new Date().getTime()
-        //         })
-
-        //         await artist.save()
-        //     }
-        // }
-
         const data = new Type({
             _creator: req.user._id,
             information: add,
@@ -387,6 +389,35 @@ app.post('/add', authenticate, async (req, res) => {
         const result = await data.save()
         res.send(result)
     } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+app.post('/addAlbPlayTrack', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['type', 'id', 'index'])
+        let add = await callAxiosData('get', `/${body.type}/${body.id}`)
+        const track = add.tracks.data.filter((cur, index) => index === body.index)
+        add.tracks.data = track
+
+        const Type = body.type === 'album' ? Album : Playlist
+        const response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
+        if (!response) {
+            const data = new Type({
+                _creator: req.user._id,
+                information: add,
+                createdAt: new Date().getTime()
+            })
+    
+            const result = await data.save()
+            return res.send(result)
+        } 
+        const finalResult = response.information.tracks.data.concat(track)
+        response.information.tracks.data = finalResult
+        const result = await response.save()
+        res.send(result)
+    } catch(e) {
+        console.log(e)
         res.status(400).send(e)
     }
 })
@@ -472,6 +503,26 @@ app.get('/allalbums', authenticate, async (req, res) => {
     try {
         const albums = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }])
         res.send(albums)
+    } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+/****Check playlist availability */
+app.post('/checkavailable', authenticate, async (req, res) => {
+    const body = _.pick(req.body, ['id', 'type'])
+    const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
+    try {
+        const result = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
+        if (result) {
+            if (body.type !== 'track') {
+                if (result.tracks.data.length !== result.nb_tracks) {
+                    return res.send(false)
+                }
+            }
+            return res.send(true)
+        }
+        res.send(false)
     } catch (e) {
         res.status(400).send(e)
     }
