@@ -235,7 +235,7 @@ app.post('/likeUndownload', authenticate, async (req, res) => {
 
         const like = new Like({
             _creator: req.user._id,
-            information: body.data,
+            information: body.type === 'track' ? body.data : body.data.id,
             _id: new ObjectID(),
             createdAt: new Date().getTime(),
             type: body.type
@@ -267,7 +267,7 @@ app.post('/unlikeUndownload', authenticate, async (req, res) => {
 app.post('/like', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', '_id', 'data'])
-        const Type = body.type === 'track' ? Track : Album
+        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
 
         if (!ObjectID.isValid(body._id)) {
             return res.status(404).send('This is not a valid ID')
@@ -276,9 +276,13 @@ app.post('/like', authenticate, async (req, res) => {
         if (!result) {
             return res.send(`This ${body.type} doesn't exist`)
         }
+        const found = await Like.findOne({ _creator: req.user._id, _id: body._id })
+        if (found) {
+            return res.send('You already liked it')
+        }
         result.liked = true
         const response = await result.save()
-
+        
         const like = new Like({
             _creator: req.user._id,
             _id: body._id,
@@ -293,15 +297,16 @@ app.post('/like', authenticate, async (req, res) => {
             likeResult
         })
     } catch (e) {
+        console.log(e)
         res.status(400).send(e)
     }
 })
 
 /*****Unlike Route */
-app.delete('/unlike', authenticate, async (req, res) => {
+app.post('/unlike', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', '_id'])
-        const Type = body.type === 'track' ? Track : Album
+        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
 
         if (!ObjectID.isValid(body._id)) {
             return res.status(404).send('This is not a valid ID')
@@ -324,6 +329,7 @@ app.delete('/unlike', authenticate, async (req, res) => {
             remove
         })
     } catch (e) {
+        console.log(e)
         res.status(400).send(e)
     }
 })
@@ -372,11 +378,11 @@ app.post('/add', authenticate, async (req, res) => {
         const add = await callAxiosData('get', `/${body.type}/${body.id}`)
 
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
-        const response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
+        let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
 
         if (response) {
             console.log('was here before')
-            response.information.tracks.data = add.tracks.data
+            response.information = { ...response.information, tracks: {...response.information.tracks, data: add.tracks.data} }
             const result = await response.save()
             return res.send(result)
         }
@@ -389,6 +395,7 @@ app.post('/add', authenticate, async (req, res) => {
         const result = await data.save()
         res.send(result)
     } catch (e) {
+        console.log(e)
         res.status(400).send(e)
     }
 })
@@ -408,12 +415,24 @@ app.post('/addAlbPlayTrack', authenticate, async (req, res) => {
                 information: add,
                 createdAt: new Date().getTime()
             })
-    
             const result = await data.save()
             return res.send(result)
         } 
+
+        function checkId(element) {
+            console.log(element.id, track[0].id)
+            return element.id === track[0].id;
+        }
+        const present = response.information.tracks.data.some(checkId)
+        console.log(present)
+        if (present) {
+            return res.send('this particular one is already there')
+        }
+        
         const finalResult = response.information.tracks.data.concat(track)
-        response.information.tracks.data = finalResult
+        response.information = { ...response.information, tracks: {...response.information.tracks, data: finalResult} }
+        
+        // response.information.tracks.data = finalResult
         const result = await response.save()
         res.send(result)
     } catch(e) {
@@ -516,13 +535,13 @@ app.post('/checkavailable', authenticate, async (req, res) => {
         const result = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
         if (result) {
             if (body.type !== 'track') {
-                if (result.tracks.data.length !== result.nb_tracks) {
-                    return res.send(false)
+                if (result.information.tracks.data.length !== result.information.nb_tracks) {
+                    return res.send({ status: false, _id: null })
                 }
             }
-            return res.send(true)
+            return res.send({ _id: result._id, status: true})
         }
-        res.send(false)
+        res.send({ status: false, _id: null })
     } catch (e) {
         res.status(400).send(e)
     }
