@@ -33,14 +33,14 @@ app.post('/googleLogin', async (req, res) => {
     try {
         const body = _.pick(req.body, ['id', 'email', 'displayName'])
         const user = await User.findExistingGoogleAccount(body.id)
-        
+
         if (user) {
             const token = await user.generateAuthToken()
             let response = _.pick(user, ['method', 'google'])
             response.token = token
             return res.header('authorization', token).send(response)
         }
-        
+
         const newUser = new User({
             method: 'google',
             google: {
@@ -211,13 +211,13 @@ app.get('/explore', async (req, res) => {
 
 /***Find like */
 app.post('/checklike', authenticate, async (req, res) => {
-    try { 
+    try {
         const body = _.pick(req.body, ['id', 'type'])
         const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.id, 'information.type': body.type })
-         if (result) {
-             return res.send(true)
-         } 
-         res.send(false)
+        if (result) {
+            return res.send(true)
+        }
+        res.send(false)
     } catch (e) {
         res.status(400).send(e)
     }
@@ -282,7 +282,7 @@ app.post('/like', authenticate, async (req, res) => {
         }
         result.liked = true
         const response = await result.save()
-        
+
         const like = new Like({
             _creator: req.user._id,
             _id: body._id,
@@ -382,7 +382,7 @@ app.post('/add', authenticate, async (req, res) => {
 
         if (response) {
             console.log('was here before')
-            response.information = { ...response.information, tracks: {...response.information.tracks, data: add.tracks.data} }
+            response.information = { ...response.information, tracks: { ...response.information.tracks, data: add.tracks.data } }
             const result = await response.save()
             return res.send(result)
         }
@@ -402,40 +402,48 @@ app.post('/add', authenticate, async (req, res) => {
 
 app.post('/addAlbPlayTrack', authenticate, async (req, res) => {
     try {
-        const body = _.pick(req.body, ['type', 'id', 'index'])
-        let add = await callAxiosData('get', `/${body.type}/${body.id}`)
-        const track = add.tracks.data.filter((cur, index) => index === body.index)
-        add.tracks.data = track
+        const body = _.pick(req.body, ['type', 'id', 'index', 'trackId'])
+        let add = await callAxiosData('get', `/album/${body.id}`)
+        let storedIndex
 
-        const Type = body.type === 'album' ? Album : Playlist
-        const response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
+        if (body.type === 'album') {
+            storedIndex = body.index + 1
+        } else {
+            const isIndex = (element) => element.id === body.trackId;
+            const newIndex = add.tracks.data.findIndex(isIndex);
+            storedIndex = newIndex + 1
+        }
+
+        const track = add.tracks.data.filter((cur, index) => index === (storedIndex - 1))
+        track[0].number = storedIndex
+        add.tracks.data = track
+        // const Type = body.type === 'album' ? Album : Playlist
+        const response = await Album.findOne({ _creator: req.user._id, 'information.id': body.id })
         if (!response) {
-            const data = new Type({
+            const data = new Album({
                 _creator: req.user._id,
                 information: add,
                 createdAt: new Date().getTime()
             })
             const result = await data.save()
             return res.send(result)
-        } 
+        }
 
         function checkId(element) {
-            console.log(element.id, track[0].id)
             return element.id === track[0].id;
         }
         const present = response.information.tracks.data.some(checkId)
-        console.log(present)
         if (present) {
             return res.send('this particular one is already there')
         }
-        
+
         const finalResult = response.information.tracks.data.concat(track)
-        response.information = { ...response.information, tracks: {...response.information.tracks, data: finalResult} }
-        
+        response.information = { ...response.information, tracks: { ...response.information.tracks, data: finalResult } }
+
         // response.information.tracks.data = finalResult
         const result = await response.save()
         res.send(result)
-    } catch(e) {
+    } catch (e) {
         console.log(e)
         res.status(400).send(e)
     }
@@ -529,9 +537,9 @@ app.get('/allalbums', authenticate, async (req, res) => {
 
 /****Check playlist availability */
 app.post('/checkavailable', authenticate, async (req, res) => {
-    const body = _.pick(req.body, ['id', 'type'])
-    const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
     try {
+        const body = _.pick(req.body, ['id', 'type'])
+        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
         const result = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
         if (result) {
             if (body.type !== 'track') {
@@ -539,13 +547,36 @@ app.post('/checkavailable', authenticate, async (req, res) => {
                     return res.send({ status: false, _id: null })
                 }
             }
-            return res.send({ _id: result._id, status: true})
+            return res.send({ _id: result._id, status: true })
         }
         res.send({ status: false, _id: null })
     } catch (e) {
         res.status(400).send(e)
     }
 })
+
+/***Check if track is in album */
+app.post('/checkTrackInAlbum', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['id', 'trackId'])
+        const result = await Album.findOne({ _creator: req.user._id, 'information.id': body.id })
+        if (result) {
+            const isIndex = (element) => element.id === body.trackId;
+            const newIndex = result.information.tracks.data.findIndex(isIndex);
+            
+            if (newIndex !== -1) {
+                return res.send(true)
+            } else {
+                return res.send(false)
+            }
+        }
+        res.send(false)
+    } catch (e) {
+        console.log(e)
+        res.status(400).send(e)
+    }
+})
+
 
 /*****All Playlists Route */
 app.get('/allplaylists', authenticate, async (req, res) => {
