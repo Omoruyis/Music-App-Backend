@@ -213,7 +213,7 @@ app.get('/explore', async (req, res) => {
 app.post('/checklike', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['id', 'type'])
-        const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.id, 'information.type': body.type })
+        const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.id, type: body.type })
         if (result) {
             return res.send(true)
         }
@@ -235,7 +235,7 @@ app.post('/likeUndownload', authenticate, async (req, res) => {
 
         const like = new Like({
             _creator: req.user._id,
-            information: body.type === 'track' ? body.data : body.data.id,
+            information: body.type === 'track' ? body.data : {id: body.data.id},
             _id: new ObjectID(),
             createdAt: new Date().getTime(),
             type: body.type
@@ -340,10 +340,12 @@ app.get('/getlikes', authenticate, async (req, res) => {
         const albumLikes = await Like.find({ _creator: req.user._id, type: 'album' })
         const trackLikes = await Like.find({ _creator: req.user._id, type: 'track' })
         const artistLikes = await Like.find({ _creator: req.user._id, type: 'artist' })
+        const playlistLikes = await Like.find({ _creator: req.user._id, type: 'playlist' })
         res.send({
             albumLikes,
             trackLikes,
-            artistLikes
+            artistLikes,
+            playlistLikes
         })
     } catch (e) {
         res.status(400).send(e)
@@ -400,6 +402,7 @@ app.post('/add', authenticate, async (req, res) => {
     }
 })
 
+/*****Add track to album */
 app.post('/addAlbPlayTrack', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', 'id', 'index', 'trackId'])
@@ -442,6 +445,28 @@ app.post('/addAlbPlayTrack', authenticate, async (req, res) => {
 
         // response.information.tracks.data = finalResult
         const result = await response.save()
+        res.send(result)
+    } catch (e) {
+        console.log(e)
+        res.status(400).send(e)
+    }
+})
+
+/*****Remove track from album */
+app.post('/removeAlbPlayTrack', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['id', 'trackId'])
+
+        const response = await Album.findOne({ _creator: req.user._id, 'information.id': body.id, 'information.tracks.data.id': body.trackId })
+
+        if (!response) {
+            return res.send(`this track doesn't exist`)
+        }
+
+        const tracks = response.information.tracks.data.filter(cur => cur.id !== body.trackId)
+        response.information = { ...response.information, tracks: { ...response.information.tracks, data: tracks }}
+        const result = await response.save()
+
         res.send(result)
     } catch (e) {
         console.log(e)
