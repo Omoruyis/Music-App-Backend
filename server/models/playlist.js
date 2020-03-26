@@ -10,6 +10,11 @@ var PlaylistSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    personal: {
+        type: Boolean,
+        required: true, 
+        default: false
+    },
     createdAt: {
         type: Number,
         required: true

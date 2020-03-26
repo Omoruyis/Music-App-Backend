@@ -235,7 +235,7 @@ app.post('/likeUndownload', authenticate, async (req, res) => {
 
         const like = new Like({
             _creator: req.user._id,
-            information: body.type === 'track' ? body.data : {id: body.data.id},
+            information: body.type === 'track' ? body.data : { id: body.data.id },
             _id: new ObjectID(),
             createdAt: new Date().getTime(),
             type: body.type
@@ -355,7 +355,6 @@ app.get('/getlikes', authenticate, async (req, res) => {
 /*****Delete Route */
 app.post('/delete', authenticate, async (req, res) => {
     try {
-        console.log('yo')
         const body = _.pick(req.body, ['type', 'id'])
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
 
@@ -463,8 +462,13 @@ app.post('/removeAlbPlayTrack', authenticate, async (req, res) => {
             return res.send(`this track doesn't exist`)
         }
 
+        if (response.information.tracks.data.length === 1) {
+            const remove = await Album.findOneAndRemove({ _creator: req.user._id, 'information.id': body.id, 'information.tracks.data.id': body.trackId })
+            return res.send(remove)
+        }
+
         const tracks = response.information.tracks.data.filter(cur => cur.id !== body.trackId)
-        response.information = { ...response.information, tracks: { ...response.information.tracks, data: tracks }}
+        response.information = { ...response.information, tracks: { ...response.information.tracks, data: tracks } }
         const result = await response.save()
 
         res.send(result)
@@ -490,6 +494,7 @@ app.post('/createplaylist', authenticate, async (req, res) => {
                     data: []
                 }
             },
+            personal: true,
             createdAt: new Date().getTime()
         })
 
@@ -588,7 +593,7 @@ app.post('/checkTrackInAlbum', authenticate, async (req, res) => {
         if (result) {
             const isIndex = (element) => element.id === body.trackId;
             const newIndex = result.information.tracks.data.findIndex(isIndex);
-            
+
             if (newIndex !== -1) {
                 return res.send(true)
             } else {
