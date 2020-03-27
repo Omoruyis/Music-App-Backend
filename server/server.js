@@ -226,13 +226,13 @@ app.post('/checklike', authenticate, async (req, res) => {
 /*****Like without downloaded Route */
 app.post('/likeUndownload', authenticate, async (req, res) => {
     try {
+        console.log('wee')
         const body = _.pick(req.body, ['type', 'data'])
         // const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Artist
         const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.data.id, type: body.type })
         if (result) {
             return res.send('you already liked this')
         }
-
         const like = new Like({
             _creator: req.user._id,
             information: body.type === 'track' ? body.data : { id: body.data.id },
@@ -547,8 +547,8 @@ app.delete('/deletefromplaylist', authenticate, async (req, res) => {
 app.get('/alltracks', authenticate, async (req, res) => {
     try {
         const tracks = await Track.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { track: '$information', cover: '$information.album.cover', type: '$information.type' } }])
-        let album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { track: '$information.tracks.data', cover: '$information.cover', type: '$information.type' } }, { $unwind: { path: '$track' } }])
-        result = tracks.concat(album).sort((a, b) => a.track.title < b.track.title ? -1 : a.track.title > b.track.title ? 1 : 0)
+        let album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { albumTitle: '$information.title', information: '$information.tracks.data', albumId: '$information.id', cover: '$information.cover', type: '$information.type' } }, { $unwind: { path: '$information' } }])
+        result = tracks.concat(album).sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
         res.send(result)
     } catch (e) {
         res.status(400).send(e)

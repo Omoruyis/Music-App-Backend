@@ -1,8 +1,6 @@
 const _ = require('lodash')
 const passport = require('passport')
 const { Strategy } = require('passport-local')
-// const GooglePlusTokenStrategy = require('passport-google-plus-token')
-const GoogleStrategy = require('passport-google-oauth20').Strategy
 
 const { User } = require('../models/user')
 
