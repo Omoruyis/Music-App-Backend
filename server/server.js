@@ -418,6 +418,7 @@ app.post('/addAlbPlayTrack', authenticate, async (req, res) => {
 
         const track = add.tracks.data.filter((cur, index) => index === (storedIndex - 1))
         track[0].number = storedIndex
+        track[0].createdAt = new Date().getTime()
         add.tracks.data = track
         // const Type = body.type === 'album' ? Album : Playlist
         const response = await Album.findOne({ _creator: req.user._id, 'information.id': body.id })
@@ -547,7 +548,7 @@ app.delete('/deletefromplaylist', authenticate, async (req, res) => {
 app.get('/alltracks', authenticate, async (req, res) => {
     try {
         const tracks = await Track.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { track: '$information', cover: '$information.album.cover', type: '$information.type' } }])
-        let album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { albumTitle: '$information.title', information: '$information.tracks.data', albumId: '$information.id', cover: '$information.cover', type: '$information.type' } }, { $unwind: { path: '$information' } }])
+        let album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { albumTitle: '$information.title', information: '$information.tracks.data', albumId: '$information.id', cover: '$information.cover', createdAt:'$createdAt', type: '$information.type' } }, { $unwind: { path: '$information' } }])
         result = tracks.concat(album).sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
         res.send(result)
     } catch (e) {
