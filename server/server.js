@@ -199,10 +199,11 @@ app.get('/authenticate', (req, res) => {
 app.get('/explore', async (req, res) => {
     try {
         let result = {}
-        result.chartAlbums = await callAxios('get', `/chart/0/albums`)
-        result.chartArtists = await callAxios('get', `/chart/0/artists`)
-        result.tracks = await callAxios('get', `/chart/0/tracks`)
-        // result.playlists = await callAxios('get', `/chart/0/playlists`)
+        const first = await callAxiosData('get', `/chart`)
+        result.chartAlbums = first.albums.data
+        result.chartArtists = first.artists.data
+        result.tracks = first.tracks.data
+        // result.playlists = first.playlists.data
         res.send(result)
     } catch (e) {
         res.status(400).send(e)
@@ -226,15 +227,17 @@ app.post('/checklike', authenticate, async (req, res) => {
 /*****Like without downloaded Route */
 app.post('/likeUndownload', authenticate, async (req, res) => {
     try {
+        console.log('no its me')
         const body = _.pick(req.body, ['type', 'data'])
         // const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Artist
         const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.data.id, type: body.type })
         if (result) {
             return res.send('you already liked this')
         }
+        console.log(body.data)
         const like = new Like({
             _creator: req.user._id,
-            information: body.type === 'track' ? body.data : { id: body.data.id },
+            information: body.type === 'track' ? body.data : body.type === 'artist' ? { id: body.data.id, name: body.data.name, picture: body.data.picture_medium } : body.type === 'album' ? { id: body.data.id, title: body.data.title, picture: body.data.cover_medium } : { id: body.data.id, title: body.data.title, picture: body.data.picture },
             _id: new ObjectID(),
             createdAt: new Date().getTime(),
             type: body.type
@@ -265,6 +268,7 @@ app.post('/unlikeUndownload', authenticate, async (req, res) => {
 /*****Like Route */
 app.post('/like', authenticate, async (req, res) => {
     try {
+        console.log('its me')
         const body = _.pick(req.body, ['type', '_id', 'data'])
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
 
