@@ -226,7 +226,6 @@ app.post('/checklike', authenticate, async (req, res) => {
 /*****Like without downloaded Route */
 app.post('/likeUndownload', authenticate, async (req, res) => {
     try {
-        console.log('wee')
         const body = _.pick(req.body, ['type', 'data'])
         // const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Artist
         const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.data.id, type: body.type })
@@ -382,7 +381,6 @@ app.post('/add', authenticate, async (req, res) => {
         let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
 
         if (response) {
-            console.log('was here before')
             response.information = { ...response.information, tracks: { ...response.information.tracks, data: add.tracks.data } }
             const result = await response.save()
             return res.send(result)
