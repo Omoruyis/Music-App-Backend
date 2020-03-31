@@ -227,14 +227,12 @@ app.post('/checklike', authenticate, async (req, res) => {
 /*****Like without downloaded Route */
 app.post('/likeUndownload', authenticate, async (req, res) => {
     try {
-        console.log('no its me')
         const body = _.pick(req.body, ['type', 'data'])
         // const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Artist
         const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.data.id, type: body.type })
         if (result) {
             return res.send('you already liked this')
         }
-        console.log(body.data)
         const like = new Like({
             _creator: req.user._id,
             information: body.type === 'track' ? body.data : body.type === 'artist' ? { id: body.data.id, name: body.data.name, picture: body.data.picture_medium } : body.type === 'album' ? { id: body.data.id, title: body.data.title, picture: body.data.cover_medium } : { id: body.data.id, title: body.data.title, picture: body.data.picture },
@@ -268,7 +266,6 @@ app.post('/unlikeUndownload', authenticate, async (req, res) => {
 /*****Like Route */
 app.post('/like', authenticate, async (req, res) => {
     try {
-        console.log('its me')
         const body = _.pick(req.body, ['type', '_id', 'data'])
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
 
@@ -484,7 +481,7 @@ app.post('/removeAlbPlayTrack', authenticate, async (req, res) => {
 /*****Create Playlist Route */
 app.post('/createplaylist', authenticate, async (req, res) => {
     try {
-        const body = _.pick(req.body, ['title'])
+        const body = _.pick(req.body, ['title', 'description'])
         const exists = await Playlist.findOne({ _creator: req.user._id, 'information.title': body.title })
         if (exists) {
             return res.send('This playlist already exists')
@@ -493,7 +490,9 @@ app.post('/createplaylist', authenticate, async (req, res) => {
         const data = new Playlist({
             _creator: req.user._id,
             information: {
-                title: body.title, tracks: {
+                title: body.title, 
+                description: body.description ? body.description : '',
+                tracks: {
                     data: []
                 }
             },
