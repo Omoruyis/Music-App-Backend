@@ -515,11 +515,15 @@ app.patch('/addtoplaylist', authenticate, async (req, res) => {
         if (!playlist) {
             return res.send(`Playlist doesn't exist`)
         }
+        let existed
         playlist.information.tracks.data.forEach(cur => {
             if (cur.id === body.data.id && cur.type === body.data.type) {
-                return res.send('This song is already in this playlist')
+                existed = 'This song is already in this playlist'
             }
         })
+        if (existed) {
+            return res.send(existed)
+        }
         playlist.information = { ...playlist.information, tracks: { ...playlist.information.tracks, data: [...playlist.information.tracks.data, body.data] } }
         const result = await playlist.save()
         res.send(result)
