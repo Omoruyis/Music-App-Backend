@@ -376,13 +376,17 @@ app.post('/delete', authenticate, async (req, res) => {
 app.post('/add', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', 'id'])
-        const add = await callAxiosData('get', `/${body.type}/${body.id}`)
+        let add = await callAxiosData('get', `/${body.type}/${body.id}`)
+        add.tracks.data.forEach((cur, index) => {cur.number = index + 1})
 
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
         let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
 
         if (response) {
-            response.information = { ...response.information, tracks: { ...response.information.tracks, data: add.tracks.data } }
+            const compare = response.information.tracks.data.map(cur => cur.id)
+            let newOne = add.tracks.data.filter(cur => !compare.includes(cur.id))
+            newOne.forEach(cur => {cur.createdAt = new Date().getTime()})
+            response.information = { ...response.information, tracks: { ...response.information.tracks, data: [...response.information.tracks.data, ...newOne] } }
             const result = await response.save()
             return res.send(result)
         }
@@ -533,14 +537,14 @@ app.patch('/addtoplaylist', authenticate, async (req, res) => {
 })
 
 /*****Delete from playlist Route */
-app.delete('/deletefromplaylist', authenticate, async (req, res) => {
+app.post('/deletefromplaylist', authenticate, async (req, res) => {
     try {
-        const body = _.pick(req.body, ['id', '_id'])
-        let playlist = await Playlist.findOne({ _creator: req.user._id, _id: body._id })
+        const body = _.pick(req.body, ['id', 'title'])
+        let playlist = await Playlist.findOne({ _creator: req.user._id, 'information.title': body.title })
         if (!playlist) {
             return res.send('Playlist does not exist')
         }
-        const arr = playlist.information.tracks.data.filter(cur => !body.id.includes(cur.id))
+        const arr = playlist.information.tracks.data.filter(cur => body.id !== cur.id)
         playlist.information = { ...playlist.information, tracks: { ...playlist.information.tracks, data: arr } }
         const result = await playlist.save()
         res.send(result)
