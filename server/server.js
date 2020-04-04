@@ -363,7 +363,7 @@ app.post('/delete', authenticate, async (req, res) => {
         // }
         const response = await Type.findOneAndRemove({ _creator: req.user._id, 'information.id': body.id })
         if (!response) {
-            res.send(`This ${body.type} does not exist`)
+            return res.send(`This ${body.type} does not exist`)
         }
         res.send(response)
     } catch (e) {
@@ -507,6 +507,44 @@ app.post('/createplaylist', authenticate, async (req, res) => {
         const result = await data.save()
         res.send(result)
     } catch (e) {
+        res.status(400).send(e)
+    }
+})
+
+app.post('/deleteplaylist', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['_id'])
+
+        if (!ObjectID.isValid(body._id)) {
+            return res.status(404).send('This is not a valid ID')
+        }
+        let response = await Playlist.findOneAndRemove({ _creator: req.user._id, '_id': body._id })
+        if (!response) {
+            res.send(`This ${body.type} does not exist`)
+        }
+        res.send(response)
+    } catch (e) {
+        console.log(e)
+        res.status(400).send(e)
+    }
+})
+
+app.patch('/editplaylist', authenticate, async (req, res) => {
+    try {
+        const body = _.pick(req.body, ['_id', 'title', 'description'])
+
+        if (!ObjectID.isValid(body._id)) {
+            return res.status(404).send('This is not a valid ID')
+        }
+        let response = await Playlist.findOne({ _creator: req.user._id, '_id': body._id })
+        if (!response) {
+            res.send(`This ${body.type} does not exist`)
+        }
+        response.information = { ...response.information, title: body.title, description: body.description }
+        const result = await response.save()
+        res.send(result)
+    } catch (e) {
+        console.log(e)
         res.status(400).send(e)
     }
 })
