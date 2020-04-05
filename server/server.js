@@ -13,7 +13,6 @@ const { User } = require('./models/user')
 const { Track } = require('./models/track')
 const { Album } = require('./models/album')
 const { Playlist } = require('./models/playlist')
-const { Artist } = require('./models/artist')
 const { Like } = require('./models/like')
 const { callAxios, callAxiosData } = require('./config/deezer')
 const { authenticate } = require('./middleware/authenticate')
@@ -114,6 +113,16 @@ app.post('/login', passport.authenticate('local'), async (req, res) => {
         const token = req.user.token
         res.header('authorization', token).send(req.user)
     } catch (e) {
+        res.status(400).send(e)
+    }
+});
+
+app.get('/logout', authenticate, async (req, res) => {
+    try {
+        await req.user.removeToken(req.token)
+        res.status(200).send('successful')
+    } catch (e) {
+        console.log(e)
         res.status(400).send(e)
     }
 });
@@ -696,8 +705,8 @@ app.get('/artist/music', authenticate, async (req, res) => {
 /*****Recently Added Route */
 app.get('/recentlyAdded', authenticate, async (req, res) => {
     try {
-        const playlists = await Playlist.aggregate([{ $match: { personal: false } }, { $sort: { 'information.createdAt': -1 } }])
-        const albums = await Album.aggregate([{ $sort: { 'information.createdAt': -1 } }])
+        const playlists = await Playlist.aggregate([{ $match: {  _creator: req.user._id, personal: false } }, { $sort: { 'information.createdAt': -1 } }])
+        const albums = await Album.aggregate([{ $match: {  _creator: req.user._id } }, { $sort: { 'information.createdAt': -1 } }])
         const result = playlists.concat(albums).sort((a, b) => b['createdAt'] - a['createdAt']).slice(0, 20)
         res.send(result)
     } catch (e) {
