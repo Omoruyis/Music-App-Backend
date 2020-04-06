@@ -82,7 +82,7 @@ UserSchema.methods.removeToken = function (token) {
 UserSchema.statics.findByCredentials = function (email, password) {
     const User = this;
 
-    return User.findOne({ 'local.email' :email }).then(user => {
+    return User.findOne({ 'local.email': email }).then(user => {
 
         return new Promise((resolve, reject) => {
             if (!user) {

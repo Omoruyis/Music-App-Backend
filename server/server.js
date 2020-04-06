@@ -78,11 +78,8 @@ app.post('/signup', async (req, res) => {
     })
 
     user.save().then(() => {
-        return user.generateAuthToken()
-    }).then((token) => {
         let response = _.pick(user, ['method', 'local'])
-        response.token = token
-        res.header('authorization', token).send(response)
+        res.send(response)
     }).catch(e => {
         res.status(404).send(`New error found ${e}`)
     })
@@ -90,33 +87,34 @@ app.post('/signup', async (req, res) => {
 
 
 /*****Login Route */
-// app.post('/login', (req, res) => {
-//     const body = _.pick(req.body, ['email', 'password'])
+app.post('/login', (req, res) => {
+    const body = _.pick(req.body, ['email', 'password'])
 
-//     User.findByCredentials(body.email, body.password).then(user => {
-//         if (!user._id) {
-//             return res.send(user)
-//         } else {
-//             return user.generateAuthToken().then((token) => {
-//                 let response = _.pick(user, ['method', 'local'])
-//                 response.token = token
-//                 res.header('authorization', token).send(response)
-//             })
-//         }
-//     }).catch(e => {
-//         res.status(400).send(`not here and error: ${e}`)
-//     })
-// })
+    User.findByCredentials(body.email, body.password).then(user => {
+        if (!user._id) {
+            return res.send(user)
+        } else {
+            return user.generateAuthToken().then((token) => {
+                let response = _.pick(user, ['method', 'local'])
+                response.token = token
+                res.header('authorization', token).send(response)
+            })
+        }
+    }).catch(e => {
+        res.status(400).send(`not here and error: ${e}`)
+    })
+})
 
-app.post('/login', passport.authenticate('local'), async (req, res) => {
-    try {
-        const token = req.user.token
-        res.header('authorization', token).send(req.user)
-    } catch (e) {
-        res.status(400).send(e)
-    }
-});
+// app.post('/login', passport.authenticate('local'), async (req, res) => {
+//     try {
+//         const token = req.user.token
+//         res.header('authorization', token).send(req.user)
+//     } catch (e) {
+//         res.status(400).send(e)
+//     }
+// });
 
+/*****Logout Route */
 app.get('/logout', authenticate, async (req, res) => {
     try {
         await req.user.removeToken(req.token)
@@ -135,7 +133,7 @@ app.post('/reset', (req, res) => {
         if (!user._id) {
             return res.send(user)
         } else {
-            user.password = body.newPassword
+            user.local.password = body.newPassword
             user.save().then(() => {
                 res.send('Your password has been changed successfully')
             }).catch(e => res.status(400).send(e))
