@@ -402,7 +402,7 @@ app.post('/add', authenticate, async (req, res) => {
         }
         const data = new Type({
             _creator: req.user._id,
-            information: add.tracks.data[0],
+            information: add,
             createdAt: new Date().getTime()
         })
 
