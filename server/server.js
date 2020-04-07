@@ -405,7 +405,6 @@ app.post('/add', authenticate, async (req, res) => {
             information: add,
             createdAt: new Date().getTime()
         })
-        return res.send(data)
 
         const result = await data.save()
         res.send(result)
