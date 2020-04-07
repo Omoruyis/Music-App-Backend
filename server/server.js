@@ -386,9 +386,9 @@ app.post('/delete', authenticate, async (req, res) => {
 app.post('/add', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', 'id'])
-        return res.send(body)
         let add = await callAxiosData('get', `/${body.type}/${body.id}`)
         add.tracks.data.forEach((cur, index) => {cur.number = index + 1})
+        return res.send(add)
 
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
         let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
