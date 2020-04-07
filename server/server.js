@@ -391,7 +391,7 @@ app.post('/add', authenticate, async (req, res) => {
 
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
         let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
-        return res.send({Type, response})
+        return res.send(Type)
 
         if (response) {
             const compare = response.information.tracks.data.map(cur => cur.id)
