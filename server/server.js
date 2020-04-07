@@ -388,10 +388,10 @@ app.post('/add', authenticate, async (req, res) => {
         const body = _.pick(req.body, ['type', 'id'])
         let add = await callAxiosData('get', `/${body.type}/${body.id}`)
         add.tracks.data.forEach((cur, index) => {cur.number = index + 1})
-        return res.send(add)
 
         const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
         let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
+        return res.send({Type, response})
 
         if (response) {
             const compare = response.information.tracks.data.map(cur => cur.id)
