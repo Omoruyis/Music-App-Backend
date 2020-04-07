@@ -386,11 +386,12 @@ app.post('/delete', authenticate, async (req, res) => {
 app.post('/add', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', 'id'])
+        return res.send(body)
         let add = await callAxiosData('get', `/${body.type}/${body.id}`)
-        // add.tracks.data.forEach((cur, index) => {cur.number = index + 1})
+        add.tracks.data.forEach((cur, index) => {cur.number = index + 1})
 
-        // const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
-        let response = await Album.findOne({ _creator: req.user._id, 'information.id': body.id })
+        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
+        let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
 
         if (response) {
             const compare = response.information.tracks.data.map(cur => cur.id)
@@ -400,7 +401,7 @@ app.post('/add', authenticate, async (req, res) => {
             const result = await response.save()
             return res.send(result)
         }
-        const data = new Album({
+        const data = new Type({
             _creator: req.user._id,
             information: add,
             createdAt: new Date().getTime()
