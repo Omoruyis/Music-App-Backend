@@ -8,7 +8,6 @@ var PlaylistSchema = new mongoose.Schema({
     information: {
         type: Object,
         required: true,
-        unique: true
     },
     personal: {
         type: Boolean,

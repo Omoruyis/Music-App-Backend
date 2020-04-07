@@ -13,7 +13,6 @@ var LikeSchema = new mongoose.Schema({
     information: {
         type: Object,
         required: true,
-        unique: true
     },
     createdAt: {
         type: Number,
