@@ -10,7 +10,6 @@ const passport = require('passport')
 
 const { mongoose } = require('./db/mongoose')
 const { User } = require('./models/user')
-const { Track } = require('./models/track')
 const { Album } = require('./models/album')
 const { Playlist } = require('./models/playlist')
 const { Like } = require('./models/like')
@@ -180,9 +179,7 @@ app.post('/search/:type', async (req, res) => {
             result.albums = await callAxios('get', `/${type}/${body.id}/albums`)
             result.typeDetails = await callAxiosData('get', `/${type}/${body.id}`)
             return res.send(result)
-        } else if (type === 'track') {
-            return res.send(`https://www.deezer.com/track/${body.id}`)
-        }
+        } 
         const typeDetails = await callAxiosData('get', `/${type}/${body.id}`)
         res.send(typeDetails)
     } catch (e) {
@@ -238,7 +235,6 @@ app.post('/checklike', authenticate, async (req, res) => {
 app.post('/likeUndownload', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', 'data'])
-        // const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Artist
         const result = await Like.findOne({ _creator: req.user._id, 'information.id': body.data.id, type: body.type })
         if (result) {
             return res.send('you already liked this')
@@ -366,7 +362,7 @@ app.get('/getlikes', authenticate, async (req, res) => {
 app.post('/delete', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', 'id'])
-        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
+        const Type = body.type === 'album' ? Album : Playlist
 
         // if (!ObjectID.isValid(body._id)) {
         //     return res.status(404).send('This is not a valid ID')
@@ -389,7 +385,7 @@ app.post('/add', authenticate, async (req, res) => {
         let add = await callAxiosData('get', `/${body.type}/${body.id}`)
         add.tracks.data.forEach((cur, index) => {cur.number = index + 1})
 
-        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
+        const Type = body.type === 'album' ? Album : Playlist
         let response = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
 
         if (response) {
@@ -418,7 +414,6 @@ app.post('/add', authenticate, async (req, res) => {
 app.post('/addAlbPlayTrack', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['type', 'id', 'index', 'trackId'])
-        console.log(body)
         let add = await callAxiosData('get', `/album/${body.id}`)
         let storedIndex
 
@@ -605,9 +600,8 @@ app.post('/deletefromplaylist', authenticate, async (req, res) => {
 /*****All tracks Route */
 app.get('/alltracks', authenticate, async (req, res) => {
     try {
-        const tracks = await Track.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { track: '$information', cover: '$information.album.cover', type: '$information.type' } }])
         let album = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $sort: { 'information.title': 1 } }, { $project: { albumTitle: '$information.title', information: '$information.tracks.data', albumId: '$information.id', cover: '$information.cover', createdAt:'$createdAt', type: '$information.type' } }, { $unwind: { path: '$information' } }])
-        result = tracks.concat(album).sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
+        result = album.sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
         res.send(result)
     } catch (e) {
         res.status(400).send(e)
@@ -628,7 +622,7 @@ app.get('/allalbums', authenticate, async (req, res) => {
 app.post('/checkavailable', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['id', 'type'])
-        const Type = body.type === 'track' ? Track : body.type === 'album' ? Album : Playlist
+        const Type = body.type === 'album' ? Album : Playlist
         const result = await Type.findOne({ _creator: req.user._id, 'information.id': body.id })
         if (result) {
             if (body.type !== 'track') {
@@ -691,9 +685,8 @@ app.get('/allartists', authenticate, async (req, res) => {
 app.get('/artist/music', authenticate, async (req, res) => {
     try {
         const body = _.pick(req.body, ['id'])
-        const tracks = await Track.find({ _creator: req.user._id, 'information.artist.id': body.id })
         const albums = await Album.aggregate([{ $match: { _creator: req.user._id, 'information.artist.id': body.id } }])
-        const music = tracks.concat(albums).sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
+        const music = albums.sort((a, b) => a.information.title < b.information.title ? -1 : a.information.title > b.information.title ? 1 : 0)
         res.send(music)
     } catch (e) {
         res.status(400).send(e)
