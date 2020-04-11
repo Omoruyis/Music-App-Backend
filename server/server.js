@@ -672,14 +672,14 @@ app.get('/allplaylists', authenticate, async (req, res) => {
 })
 
 /*****All Artists Route */
-app.get('/allartists', authenticate, async (req, res) => {
-    try {
-        const artists = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $group: { _id: { id: '$information.artist.id', name: '$information.artist.name', picture: '$information.artist.picture_medium' } } }, { $sort: { '_id.name': 1 } }, { $project: { id: '$_id.id', name: '$_id.name', picture: '$_id.picture', _id: 0 } }])
-        res.send(artists)
-    } catch (e) {
-        res.status(400).send(e)
-    }
-})
+// app.get('/allartists', authenticate, async (req, res) => {
+//     try {
+//         const artists = await Album.aggregate([{ $match: { _creator: req.user._id } }, { $group: { _id: { id: '$information.artist.id', name: '$information.artist.name', picture: '$information.artist.picture_medium' } } }, { $sort: { '_id.name': 1 } }, { $project: { id: '$_id.id', name: '$_id.name', picture: '$_id.picture', _id: 0 } }])
+//         res.send(artists)
+//     } catch (e) {
+//         res.status(400).send(e)
+//     }
+// })
 
 /*****Music for an Artist Route */
 app.get('/artist/music', authenticate, async (req, res) => {
