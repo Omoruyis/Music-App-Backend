@@ -7,6 +7,8 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const { ObjectID } = require('mongodb')
 const passport = require('passport')
+const bcrypt = require('bcryptjs')
+
 
 const { mongoose } = require('./db/mongoose')
 const { User } = require('./models/user')
@@ -124,40 +126,30 @@ app.get('/logout', authenticate, async (req, res) => {
     }
 });
 
-// /******Reset password Route*/
-// app.post('/reset', (req, res) => {
-//     const body = _.pick(req.body, ['email', 'password', 'newPassword'])
-
-//     User.findByCredentials(body.email, body.password).then(user => {
-//         if (!user._id) {
-//             return res.send(user)
-//         } else {
-//             user.local.password = body.newPassword
-//             user.save().then(() => {
-//                 res.send('Your password has been changed successfully')
-//             }).catch(e => res.status(400).send(e))
-//         }
-//     }).catch(e => {
-//         res.status(400).send(`not here and error: ${e}`)
-//     })
-// })
-
 /******Reset password Route*/
-app.post('/reset', authenticate, (req, res) => {
+app.post('/reset', (req, res) => {
     const body = _.pick(req.body, ['password', 'newPassword'])
-     
-    User.findByCredentials(req.user._id, body.password).then(user => {
-        if (!user._id) {
-            return res.send(user)
-        } else {
-            user.local.password = body.newPassword
-            user.save().then(() => {
-                res.send('Your password has been changed successfully')
-            }).catch(e => res.status(400).send(e))
+    const token = req.header('authorization').split(' ')[1]
+
+    User.findByToken(token).then(user => {
+        if (!user) {
+            return Promise.reject()
         }
+
+        bcrypt.compare(body.password, user.local.password, (err, result) => {
+            if (result) {
+                user.local.password = body.newPassword
+                user.save().then(() => {
+                    res.send('Your password has been changed successfully')
+                }).catch(e => res.status(400).send(e))
+            }
+            else {
+                res.send('Invalid password')
+            }
+        })
     }).catch(e => {
-        res.status(400).send(`not here and error: ${e}`)
-    })
+        res.status(401).send(e)
+    }) 
 })
 
 /*******Public Search Route*/
