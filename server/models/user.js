@@ -79,14 +79,14 @@ UserSchema.methods.removeToken = function (token) {
 
 
 /******MongooseSchema statics */
-UserSchema.statics.findByCredentials = function (email, password) {
+UserSchema.statics.findByCredentials = function (_id, password) {
     const User = this;
 
-    return User.findOne({ 'local.email': email }).then(user => {
+    return User.findOne({ _id }).then(user => {
 
         return new Promise((resolve, reject) => {
             if (!user) {
-                resolve('Wrong email address')
+                resolve(`User doesn't exist`)
             }
 
             bcrypt.compare(password, user.local.password, (err, res) => {
