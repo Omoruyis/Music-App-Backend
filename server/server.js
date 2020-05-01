@@ -124,22 +124,41 @@ app.get('/logout', authenticate, async (req, res) => {
     }
 });
 
+// /******Reset password Route*/
+// app.post('/reset', (req, res) => {
+//     const body = _.pick(req.body, ['email', 'password', 'newPassword'])
+
+//     User.findByCredentials(body.email, body.password).then(user => {
+//         if (!user._id) {
+//             return res.send(user)
+//         } else {
+//             user.local.password = body.newPassword
+//             user.save().then(() => {
+//                 res.send('Your password has been changed successfully')
+//             }).catch(e => res.status(400).send(e))
+//         }
+//     }).catch(e => {
+//         res.status(400).send(`not here and error: ${e}`)
+//     })
+// })
+
 /******Reset password Route*/
 app.post('/reset', (req, res) => {
-    const body = _.pick(req.body, ['email', 'password', 'newPassword'])
+    const body = _.pick(req.body, ['password', 'newPassword'])
+    const token = req.header('authorization').split(' ')[1]
 
-    User.findByCredentials(body.email, body.password).then(user => {
-        if (!user._id) {
-            return res.send(user)
-        } else {
-            user.local.password = body.newPassword
-            user.save().then(() => {
-                res.send('Your password has been changed successfully')
-            }).catch(e => res.status(400).send(e))
+    User.findByToken(token).then(user => {
+        if (!user) {
+            return Promise.reject()
         }
+
+        user.local.password = body.newPassword
+        user.save().then(() => {
+            res.send('Your password has been changed successfully')
+        }).catch(e => res.status(400).send(e))
     }).catch(e => {
-        res.status(400).send(`not here and error: ${e}`)
-    })
+        res.status(401).send(e)
+    }) 
 })
 
 /*******Public Search Route*/
