@@ -205,7 +205,7 @@ app.get('/authenticate', (req, res) => {
             return res.send('Invalid token')
         }
 
-        res.send('Welcome')
+        res.send('Valid token')
     }).catch(e => {
         res.status(401).send(e)
     })
