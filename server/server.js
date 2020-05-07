@@ -215,7 +215,7 @@ app.get('/authenticate', (req, res) => {
         // .catch(e => {
         //     res.status(401).send(e)
         // })
-        return valid
+        res.send(valid)
     } catch (e) {
         res.status(400).send(e)
     }
