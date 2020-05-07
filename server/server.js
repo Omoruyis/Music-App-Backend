@@ -200,31 +200,13 @@ app.post('/search/:type', async (req, res) => {
 app.get('/authenticate', async (req, res) => {
     try {
         const token = req.header('authorization').split(' ')[1]
-        let valid 
 
         const user = await User.findByToken(token)
-        if (!user._id) {
-            valid = false
-        } else {
-            valid = true
+        if (user._id) {
+            res.send('Valid token')
         }
-
-        // User.findByToken(token).then(user => {
-        //     if (!user) {
-        //         // return res.send('Invalid token')
-        //         valid = false
-        //     } else {
-        //         valid = true
-        //     }
-
-        //     // res.send('Valid token')
-        // })
-        // .catch(e => {
-        //     res.status(401).send(e)
-        // })
-        res.send(valid)
     } catch (e) {
-        res.status(400).send(e)
+        res.status(401).send(e)
     }
 })
 
