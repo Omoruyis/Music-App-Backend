@@ -202,7 +202,7 @@ app.get('/authenticate', (req, res) => {
 
     User.findByToken(token).then(user => {
         if (!user) {
-            return Promise.reject()
+            res.send('Invalid token')
         }
 
         res.send('Welcome')
