@@ -197,21 +197,28 @@ app.post('/search/:type', async (req, res) => {
     }
 })
 
-app.get('/authenticate', (req, res) => {
+app.get('/authenticate', async (req, res) => {
     try {
         const token = req.header('authorization').split(' ')[1]
         let valid 
 
-        User.findByToken(token).then(user => {
-            if (!user) {
-                // return res.send('Invalid token')
-                valid = false
-            } else {
-                valid = true
-            }
+        const user = await User.findByToken(token)
+        if (!user._id) {
+            valid = false
+        } else {
+            valid = true
+        }
 
-            // res.send('Valid token')
-        })
+        // User.findByToken(token).then(user => {
+        //     if (!user) {
+        //         // return res.send('Invalid token')
+        //         valid = false
+        //     } else {
+        //         valid = true
+        //     }
+
+        //     // res.send('Valid token')
+        // })
         // .catch(e => {
         //     res.status(401).send(e)
         // })
