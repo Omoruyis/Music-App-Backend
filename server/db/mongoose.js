@@ -4,7 +4,7 @@ const mongoose = require('mongoose')
 
 mongoose.Promise = global.Promise
 // mongoose.connect(url, {useNewUrlParser: true})
-mongoose.connect('mongodb+srv://Omoruyi:9wNtETe9km8o8Y5N@cluster0.f26bi.mongodb.net/Omoruyi?retryWrites=true&w=majority', {useNewUrlParser: true})
+mongoose.connect('mongodb+srv://Omoruyi:SlRY4z6l0fbKOpPK@cluster0.f26bi.mongodb.net/Omoruyi?retryWrites=true&w=majority', {useNewUrlParser: true})
 mongoose.set('useCreateIndex', true);
 
 
