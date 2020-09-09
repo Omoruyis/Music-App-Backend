@@ -1,14 +1,10 @@
 const mongoose = require('mongoose')
 
-// const url = process.env.MONGODB_URI
+const url = process.env.MONGODB_URI
 
 mongoose.Promise = global.Promise
-// mongoose.connect(url, {useNewUrlParser: true})
-mongoose.connect('mongodb+srv://Omoruyi:SlRY4z6l0fbKOpPK@cluster0.f26bi.mongodb.net/Omoruyi?retryWrites=true&w=majority', {useNewUrlParser: true})
+mongoose.connect(url, {useNewUrlParser: true})
 mongoose.set('useCreateIndex', true);
-
-
-
 
 module.exports = {
     mongoose, 
